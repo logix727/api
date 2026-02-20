@@ -1,9 +1,16 @@
 import { Database, Download, Filter, Search } from "lucide-react";
+import { useState } from "react";
+import ImportModal from "../components/ImportModal";
 
 export default function AssetManagerView() {
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
   return (
     <div className="flex-1 flex flex-col h-full bg-background overflow-hidden p-8">
       
+      {/* Import Modal Overlay */}
+      <ImportModal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} />
+
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -15,7 +22,10 @@ export default function AssetManagerView() {
             <Download className="w-4 h-4" />
             Export CSV
           </button>
-          <button className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md font-medium text-sm flex items-center gap-2 transition-colors">
+          <button 
+            onClick={() => setIsImportModalOpen(true)}
+            className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md font-medium text-sm flex items-center gap-2 transition-colors"
+          >
             <Database className="w-4 h-4" />
             Import Assets
           </button>

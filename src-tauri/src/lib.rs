@@ -1,16 +1,40 @@
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
+mod db;
+pub mod models;
+
+use db::DbPool;
+use tauri::Manager;
+
+// We will add real commands here later
 #[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
+async fn ping_db(_state: tauri::State<'_, DbPool>) -> Result<String, String> {
+    Ok("Database Connected".to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .setup(|app| {
+            // Get the proper app path to store the db
+            let app_data_dir = app
+                .path()
+                .app_data_dir()
+                .expect("Failed to get app data dir");
+
+            // Start a tokio task to setup the DB
+            let pool = tauri::async_runtime::block_on(async move {
+                db::init_db(app_data_dir)
+                    .await
+                    .expect("Failed to initialize database")
+            });
+
+            // Store the pool in app state so commands can access it
+            app.manage(pool);
+            Ok(())
+        })
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![greet])
+        .invoke_handler(tauri::generate_handler![ping_db])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

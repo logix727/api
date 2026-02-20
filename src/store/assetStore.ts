@@ -13,6 +13,17 @@ export interface Asset {
   last_scanned: string | null;
 }
 
+export interface Finding {
+  id: string;
+  asset_id: string;
+  category: string;
+  severity: string;
+  description: string;
+  evidence: string | null;
+  status: string;
+  created_at: string;
+}
+
 interface AssetStore {
   assets: Asset[];
   isLoading: boolean;
@@ -27,10 +38,15 @@ interface AssetStore {
     raw_response: string | null;
   }) => Promise<void>;
   deleteAsset: (id: string) => Promise<void>;
+  
+  findings: Record<string, Finding[]>;
+  fetchFindings: (assetId: string) => Promise<void>;
+  runScan: (assetId: string) => Promise<void>;
 }
 
-export const useAssetStore = create<AssetStore>((set) => ({
+export const useAssetStore = create<AssetStore>((set, get) => ({
   assets: [],
+  findings: {},
   isLoading: false,
   error: null,
 
@@ -72,6 +88,32 @@ export const useAssetStore = create<AssetStore>((set) => ({
         assets: state.assets.filter((a) => a.id !== id),
         isLoading: false,
       }));
+    } catch (err: any) {
+      set({ error: err.toString(), isLoading: false });
+    }
+  },
+
+  fetchFindings: async (assetId: string) => {
+    try {
+      const dbFindings: Finding[] = await invoke('get_findings', { assetId });
+      set((state) => ({
+        findings: { ...state.findings, [assetId]: dbFindings }
+      }));
+    } catch (err: any) {
+      console.error("Failed to fetch findings", err);
+    }
+  },
+
+  runScan: async (assetId: string) => {
+    set({ isLoading: true });
+    try {
+      const newFindings: Finding[] = await invoke('run_scan_asset', { assetId });
+      set((state) => ({
+        findings: { ...state.findings, [assetId]: newFindings },
+        isLoading: false
+      }));
+      // trigger refresh of assets to get new last_scanned
+      get().fetchAssets("default-workspace");
     } catch (err: any) {
       set({ error: err.toString(), isLoading: false });
     }

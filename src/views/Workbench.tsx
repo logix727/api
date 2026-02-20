@@ -4,12 +4,25 @@ import { useAssetStore, Asset } from "../store/assetStore";
 import { useEffect, useState } from "react";
 
 export default function WorkbenchView() {
-  const { assets, fetchAssets, isLoading } = useAssetStore();
+  const { assets, fetchAssets, isLoading, fetchFindings, runScan, findings } = useAssetStore();
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
 
   useEffect(() => {
     fetchAssets("default-workspace");
   }, [fetchAssets]);
+
+  // When selectedAsset changes, fetch its findings
+  useEffect(() => {
+    if (selectedAsset) {
+      fetchFindings(selectedAsset.id);
+    }
+  }, [selectedAsset, fetchFindings]);
+
+  const handleRunScan = async () => {
+    if (selectedAsset) {
+      await runScan(selectedAsset.id);
+    }
+  };
 
   const mockRequestBody = `{\n  "userId": "12345",\n  "include_private": true\n}`;
   const mockRawResponse = `HTTP/1.1 200 OK\nContent-Type: application/json\nX-Powered-By: Express\n\n{\n  "status": "success",\n  "data": {\n    "id": 12345,\n    "name": "Jane Doe",\n    "ssn": "000-00-0000",\n    "role": "user"\n  }\n}`;
@@ -26,9 +39,15 @@ export default function WorkbenchView() {
           </span>
         </div>
         <div className="flex items-center gap-3">
-          <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-colors">
+          <button 
+            onClick={handleRunScan}
+            disabled={!selectedAsset || isLoading}
+            className={`px-4 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-colors ${
+              !selectedAsset || isLoading ? 'bg-secondary text-muted-foreground' : 'bg-primary hover:bg-primary/90 text-primary-foreground'
+            }`}
+          >
             <Play className="w-4 h-4" />
-            Run Security Scan
+            {isLoading ? "Scanning..." : "Run Security Scan"}
           </button>
         </div>
       </header>
@@ -158,24 +177,38 @@ export default function WorkbenchView() {
             <div className="h-1/2 p-4 overflow-y-auto bg-card">
                <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
                  <ShieldAlert className="w-4 h-4 text-destructive" />
-                 Active Detections (1)
+                 Active Detections ({selectedAsset ? (findings[selectedAsset.id]?.length || 0) : 0})
                </h3>
 
-               {/* Mock Finding */}
-               <div className="border border-destructive/30 bg-destructive/5 rounded-md p-3 hover:bg-destructive/10 cursor-pointer transition-colors">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-destructive bg-destructive/10 px-2 py-0.5 rounded uppercase tracking-wide">Critical</span>
-                    <span className="text-xs text-muted-foreground">API1: BOLA</span>
-                  </div>
-                  <h4 className="text-sm font-semibold text-foreground mb-1">Excessive Data Exposure: SSN</h4>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    The endpoint returned an unmasked Social Security Number in the JSON response body.
-                  </p>
-                  <button className="text-xs font-medium bg-background border border-border hover:bg-secondary px-3 py-1 rounded w-full transition-colors">
-                    Triage & Mitigate
-                  </button>
-               </div>
-
+               {selectedAsset && findings[selectedAsset.id]?.length > 0 ? (
+                 findings[selectedAsset.id].map(finding => (
+                   <div key={finding.id} className="border border-destructive/30 bg-destructive/5 rounded-md p-3 hover:bg-destructive/10 cursor-pointer transition-colors mb-2">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wide ${
+                          finding.severity === 'High' ? 'text-destructive bg-destructive/10' :
+                          finding.severity === 'Medium' ? 'text-orange-500 bg-orange-500/10' :
+                          'text-yellow-500 bg-yellow-500/10'
+                        }`}>
+                          {finding.severity}
+                        </span>
+                        <span className="text-xs text-muted-foreground">{finding.category}</span>
+                      </div>
+                      <h4 className="text-sm font-semibold text-foreground mb-1">{finding.description}</h4>
+                      {finding.evidence && (
+                        <p className="text-xs text-muted-foreground mb-3 font-mono bg-background p-1.5 rounded border border-border mt-2 overflow-x-auto whitespace-pre">
+                          {finding.evidence.substring(0, 100)}...
+                        </p>
+                      )}
+                      <button className="text-xs font-medium bg-background border border-border hover:bg-secondary px-3 py-1 rounded w-full transition-colors mt-2">
+                        Triage & Mitigate
+                      </button>
+                   </div>
+                 ))
+               ) : (
+                 <div className="text-sm text-muted-foreground text-center py-6 border border-dashed border-border rounded-md bg-background/50">
+                    No active detections.
+                 </div>
+               )}
             </div>
           </div>
         </div>

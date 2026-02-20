@@ -1,5 +1,7 @@
 use crate::db::DbPool;
-use crate::models::Asset;
+use crate::models::{Asset, Finding};
+use crate::scanner::run_scan_on_asset;
+use chrono::Utc;
 use tauri::State;
 use uuid::Uuid;
 
@@ -71,4 +73,72 @@ pub async fn delete_asset(id: String, state: State<'_, DbPool>) -> Result<(), St
         .map_err(|e| e.to_string())?;
 
     Ok(())
+}
+
+#[tauri::command]
+pub async fn run_scan_asset(
+    asset_id: String,
+    state: State<'_, DbPool>,
+) -> Result<Vec<Finding>, String> {
+    let pool = state.inner();
+
+    // 1. Fetch the asset
+    let asset = sqlx::query_as::<_, Asset>(
+        "SELECT id, workspace_id, method, endpoint, source, raw_request, raw_response, created_at, last_scanned FROM assets WHERE id = ?"
+    )
+    .bind(&asset_id)
+    .fetch_one(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    // 2. Execute the scanning networking module
+    let findings = run_scan_on_asset(&asset).await?;
+
+    // 3. Save findings to DB
+    for finding in &findings {
+        sqlx::query(
+            "INSERT INTO findings (id, asset_id, category, severity, description, evidence, status, created_at) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+        )
+        .bind(&finding.id)
+        .bind(&finding.asset_id)
+        .bind(&finding.category)
+        .bind(&finding.severity)
+        .bind(&finding.description)
+        .bind(&finding.evidence)
+        .bind(&finding.status)
+        .bind(&finding.created_at)
+        .execute(pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    }
+
+    // 4. Update Asset's last_scanned
+    let now = Utc::now().to_rfc3339();
+    sqlx::query("UPDATE assets SET last_scanned = ? WHERE id = ?")
+        .bind(now)
+        .bind(&asset_id)
+        .execute(pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(findings)
+}
+
+#[tauri::command]
+pub async fn get_findings(
+    asset_id: String,
+    state: State<'_, DbPool>,
+) -> Result<Vec<Finding>, String> {
+    let pool = state.inner();
+
+    let findings = sqlx::query_as::<_, Finding>(
+        "SELECT id, asset_id, category, severity, description, evidence, status, created_at FROM findings WHERE asset_id = ?"
+    )
+    .bind(asset_id)
+    .fetch_all(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    Ok(findings)
 }

@@ -1,6 +1,7 @@
 pub mod commands;
 mod db;
 pub mod models;
+pub mod scanner;
 
 use tauri::Manager;
 
@@ -31,7 +32,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::get_assets,
             commands::add_asset,
-            commands::delete_asset
+            commands::delete_asset,
+            commands::run_scan_asset,
+            commands::get_findings
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

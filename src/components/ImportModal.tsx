@@ -4,6 +4,7 @@ import Editor from "@monaco-editor/react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { readTextFile } from "@tauri-apps/plugin-fs";
 import { downloadDir } from "@tauri-apps/api/path";
+import { useAssetStore } from "../store/assetStore";
 
 interface ImportModalProps {
   isOpen: boolean;
@@ -13,6 +14,7 @@ interface ImportModalProps {
 export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
   const [importMode, setImportMode] = useState<"file" | "paste">("file");
   const [pasteContent, setPasteContent] = useState("");
+  const { addAsset } = useAssetStore();
 
   const handleFileBrowse = async () => {
     try {
@@ -33,6 +35,47 @@ export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
       }
     } catch (error) {
       console.error("Failed to open file:", error);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!pasteContent.trim()) {
+      alert("No content to import");
+      return;
+    }
+
+    try {
+      // Basic heuristic parsing for demo
+      let method = "GET";
+      let endpoint = "/imported/endpoint";
+      
+      const lines = pasteContent.trim().split('\n');
+      const firstLine = lines[0].trim().toUpperCase();
+      
+      if (firstLine.startsWith("GET ") || firstLine.startsWith("POST ") || firstLine.startsWith("PUT ") || firstLine.startsWith("DELETE ") || firstLine.startsWith("PATCH ")) {
+        const parts = firstLine.split(' ');
+        method = parts[0];
+        endpoint = parts[1] || endpoint;
+      } else if (pasteContent.includes('"openapi"') || pasteContent.includes('"swagger"')) {
+        method = "ANY";
+        endpoint = "Swagger / OpenAPI Spec";
+      }
+
+      await addAsset({
+        workspace_id: "default-workspace",
+        method,
+        endpoint,
+        source: importMode === "file" ? "File Import" : "Manual Paste",
+        raw_request: pasteContent,
+        raw_response: null,
+      });
+
+      setPasteContent("");
+      setImportMode("file");
+      onClose();
+    } catch (e) {
+      console.error("Import failed:", e);
+      alert("Failed to import asset.");
     }
   };
 
@@ -124,7 +167,10 @@ export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
           <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary rounded-md transition-colors">
             Cancel
           </button>
-          <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2 rounded-md font-medium text-sm transition-colors">
+          <button 
+            onClick={handleImport}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2 rounded-md font-medium text-sm transition-colors"
+          >
             Parse & Import
           </button>
         </div>

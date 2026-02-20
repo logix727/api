@@ -1,6 +1,9 @@
 import { Upload, FileJson, Copy, X } from "lucide-react";
 import { useState } from "react";
 import Editor from "@monaco-editor/react";
+import { open } from "@tauri-apps/plugin-dialog";
+import { readTextFile } from "@tauri-apps/plugin-fs";
+import { downloadDir } from "@tauri-apps/api/path";
 
 interface ImportModalProps {
   isOpen: boolean;
@@ -10,6 +13,28 @@ interface ImportModalProps {
 export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
   const [importMode, setImportMode] = useState<"file" | "paste">("file");
   const [pasteContent, setPasteContent] = useState("");
+
+  const handleFileBrowse = async () => {
+    try {
+      const defaultPath = await downloadDir();
+      const selected = await open({
+        defaultPath,
+        multiple: false,
+        filters: [{
+          name: 'API Specifications',
+          extensions: ['json', 'yaml', 'yml', 'xml', 'har', 'csv', 'txt']
+        }]
+      });
+
+      if (selected && typeof selected === 'string') {
+        const contents = await readTextFile(selected);
+        setPasteContent(contents);
+        setImportMode("paste");
+      }
+    } catch (error) {
+      console.error("Failed to open file:", error);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -66,7 +91,10 @@ export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
                 </div>
                 <p className="text-foreground font-medium text-lg">Drag & drop files here</p>
                 <p className="text-muted-foreground text-sm mt-2">Supports Swagger, OpenAPI v3, Postman v2, HAR, Burp XML</p>
-                <button className="mt-6 bg-primary text-primary-foreground px-6 py-2 rounded-md font-medium text-sm hover:bg-primary/90 transition-colors">
+                <button 
+                  onClick={handleFileBrowse}
+                  className="mt-6 bg-primary text-primary-foreground px-6 py-2 rounded-md font-medium text-sm hover:bg-primary/90 transition-colors"
+                >
                   Browse Files
                 </button>
               </div>

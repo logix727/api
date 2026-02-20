@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.3.0](https://github.com/logix727/api/compare/v1.2.0...v1.3.0) (2026-02-20)
+
+
+### Features
+
+* **scanning:** implement reqwest based scanning engine in rust and link to workbench ui ([9406fa2](https://github.com/logix727/api/commit/9406fa2d05f05dbe9d9a189f09eb5792d877b063))
+
 ## [1.2.0](https://github.com/logix727/api/compare/v1.1.0...v1.2.0) (2026-02-20)
 
 

@@ -1,7 +1,16 @@
 import { Play, Search, ShieldAlert } from "lucide-react";
 import Editor from "@monaco-editor/react";
+import { useAssetStore, Asset } from "../store/assetStore";
+import { useEffect, useState } from "react";
 
 export default function WorkbenchView() {
+  const { assets, fetchAssets, isLoading } = useAssetStore();
+  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+
+  useEffect(() => {
+    fetchAssets("default-workspace");
+  }, [fetchAssets]);
+
   const mockRequestBody = `{\n  "userId": "12345",\n  "include_private": true\n}`;
   const mockRawResponse = `HTTP/1.1 200 OK\nContent-Type: application/json\nX-Powered-By: Express\n\n{\n  "status": "success",\n  "data": {\n    "id": 12345,\n    "name": "Jane Doe",\n    "ssn": "000-00-0000",\n    "role": "user"\n  }\n}`;
 
@@ -43,30 +52,56 @@ export default function WorkbenchView() {
             <div className="text-xs font-medium text-muted-foreground px-2 py-1.5 uppercase tracking-wider">
               Staged API Assets
             </div>
-            {/* Mock Item */}
-            <button className="w-full text-left px-3 py-2 rounded-md hover:bg-secondary/50 flex items-center gap-2 active bg-secondary/50 mt-1">
-              <span className="text-[10px] font-bold text-green-500 bg-green-500/10 px-1.5 py-0.5 rounded">GET</span>
-              <span className="text-sm truncate font-mono text-foreground">/api/v1/users</span>
-            </button>
-            <button className="w-full text-left px-3 py-2 rounded-md hover:bg-secondary/50 flex items-center gap-2 mt-1">
-              <span className="text-[10px] font-bold text-blue-500 bg-blue-500/10 px-1.5 py-0.5 rounded">POST</span>
-              <span className="text-sm truncate font-mono text-muted-foreground">/api/v1/checkout</span>
-            </button>
+            {isLoading ? (
+              <div className="text-sm text-muted-foreground px-2 py-4">Loading assets...</div>
+            ) : assets.length === 0 ? (
+              <div className="text-sm text-muted-foreground px-2 py-4">No assets staged. Use the Asset Manager to import.</div>
+            ) : (
+              assets.map(asset => (
+                <button 
+                  key={asset.id}
+                  onClick={() => setSelectedAsset(asset)}
+                  className={`w-full text-left px-3 py-2 rounded-md flex items-center gap-2 mt-1 transition-colors ${
+                    selectedAsset?.id === asset.id ? 'bg-secondary active' : 'hover:bg-secondary/50'
+                  }`}
+                >
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                    asset.method === 'GET' ? 'text-green-500 bg-green-500/10' :
+                    asset.method === 'POST' ? 'text-blue-500 bg-blue-500/10' :
+                    asset.method === 'DELETE' ? 'text-red-500 bg-red-500/10' :
+                    'text-yellow-500 bg-yellow-500/10'
+                  }`}>
+                    {asset.method}
+                  </span>
+                  <span className={`text-sm truncate font-mono ${selectedAsset?.id === asset.id ? 'text-foreground' : 'text-muted-foreground'}`}>
+                    {asset.endpoint}
+                  </span>
+                </button>
+              ))
+            )}
           </div>
         </div>
 
         {/* Center Pane - Request Builder */}
         <div className="flex-1 border-r border-border flex flex-col bg-background min-w-0">
            <div className="flex items-center gap-2 p-4 border-b border-border bg-card">
-              <select className="bg-secondary border border-border rounded-md px-3 py-1.5 text-sm font-bold text-green-500 focus:outline-none">
-                <option>GET</option>
-                <option>POST</option>
-                <option>PUT</option>
+              <select 
+                value={selectedAsset?.method || "GET"}
+                className="bg-secondary border border-border rounded-md px-3 py-1.5 text-sm font-bold text-green-500 focus:outline-none focus:ring-1 focus:ring-primary"
+                onChange={() => {}}
+              >
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+                <option value="PUT">PUT</option>
+                <option value="DELETE">DELETE</option>
+                <option value="PATCH">PATCH</option>
+                <option value="ANY">ANY</option>
               </select>
               <input 
                 type="text" 
                 className="flex-1 bg-background border border-border rounded-md px-3 py-1.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-primary"
-                defaultValue="https://api.example.com/v1/users/{id}"
+                value={selectedAsset?.endpoint || "https://api.example.com/v1/..."}
+                onChange={() => {}}
               />
               <button className="bg-secondary hover:bg-secondary/80 text-foreground px-4 py-1.5 rounded-md text-sm font-medium transition-colors">
                 Send
@@ -86,7 +121,7 @@ export default function WorkbenchView() {
                 height="100%" 
                 defaultLanguage="json" 
                 theme="vs-dark" 
-                value={mockRequestBody}
+                value={selectedAsset?.raw_request || mockRequestBody}
                 options={{ minimap: { enabled: false }, roundedSelection: true, padding: { top: 16 } }}
              />
            </div>
@@ -108,7 +143,7 @@ export default function WorkbenchView() {
                 height="100%" 
                 defaultLanguage="json" 
                 theme="vs-dark" 
-                value={mockRawResponse}
+                value={selectedAsset ? (selectedAsset.raw_response || "No response recorded.") : mockRawResponse}
                 options={{ 
                   minimap: { enabled: false }, 
                   readOnly: true,

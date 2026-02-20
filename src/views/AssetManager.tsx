@@ -1,9 +1,15 @@
 import { Database, Download, Filter, Search } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ImportModal from "../components/ImportModal";
+import { useAssetStore } from "../store/assetStore";
 
 export default function AssetManagerView() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const { assets, fetchAssets, isLoading } = useAssetStore();
+
+  useEffect(() => {
+    fetchAssets("default-workspace");
+  }, [fetchAssets]);
 
   return (
     <div className="flex-1 flex flex-col h-full bg-background overflow-hidden p-8">
@@ -62,35 +68,44 @@ export default function AssetManagerView() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border text-foreground cursor-pointer">
-            <tr className="hover:bg-secondary/30 transition-colors">
-              <td className="px-6 py-4">
-                <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-bold text-green-500 bg-green-500/10 px-1.5 py-0.5 rounded">GET</span>
-                  <span className="font-mono">/api/v1/users</span>
-                </div>
-              </td>
-              <td className="px-6 py-4 text-muted-foreground">Swagger Import</td>
-              <td className="px-6 py-4 text-muted-foreground">2 hours ago</td>
-              <td className="px-6 py-4 text-right">
-                <span className="inline-flex items-center gap-1 bg-destructive/10 text-destructive text-xs font-bold px-2 py-1 rounded">
-                  <span className="w-2 h-2 rounded-full bg-destructive"></span>
-                  2 Critical
-                </span>
-              </td>
-            </tr>
-            <tr className="hover:bg-secondary/30 transition-colors">
-              <td className="px-6 py-4">
-                <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-bold text-blue-500 bg-blue-500/10 px-1.5 py-0.5 rounded">POST</span>
-                  <span className="font-mono">/api/v1/checkout</span>
-                </div>
-              </td>
-              <td className="px-6 py-4 text-muted-foreground">Burp Suite XML</td>
-              <td className="px-6 py-4 text-muted-foreground">1 day ago</td>
-              <td className="px-6 py-4 text-right">
-                <span className="text-muted-foreground">Clean</span>
-              </td>
-            </tr>
+            {isLoading && (
+              <tr>
+                <td colSpan={4} className="px-6 py-8 text-center text-muted-foreground">
+                  Loading assets...
+                </td>
+              </tr>
+            )}
+            {!isLoading && assets.length === 0 && (
+              <tr>
+                <td colSpan={4} className="px-6 py-8 text-center text-muted-foreground">
+                  No assets found. Import an API to get started.
+                </td>
+              </tr>
+            )}
+            {assets.map((asset) => (
+              <tr key={asset.id} className="hover:bg-secondary/30 transition-colors">
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                      asset.method === 'GET' ? 'text-green-500 bg-green-500/10' :
+                      asset.method === 'POST' ? 'text-blue-500 bg-blue-500/10' :
+                      asset.method === 'DELETE' ? 'text-red-500 bg-red-500/10' :
+                      'text-yellow-500 bg-yellow-500/10'
+                    }`}>
+                      {asset.method}
+                    </span>
+                    <span className="font-mono">{asset.endpoint}</span>
+                  </div>
+                </td>
+                <td className="px-6 py-4 text-muted-foreground">{asset.source}</td>
+                <td className="px-6 py-4 text-muted-foreground">
+                  {asset.last_scanned ? new Date(asset.last_scanned).toLocaleString() : 'Never'}
+                </td>
+                <td className="px-6 py-4 text-right">
+                  <span className="text-muted-foreground">Clean</span>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>

@@ -1,14 +1,8 @@
+pub mod commands;
 mod db;
 pub mod models;
 
-use db::DbPool;
 use tauri::Manager;
-
-// We will add real commands here later
-#[tauri::command]
-async fn ping_db(_state: tauri::State<'_, DbPool>) -> Result<String, String> {
-    Ok("Database Connected".to_string())
-}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -34,7 +28,11 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![ping_db])
+        .invoke_handler(tauri::generate_handler![
+            commands::get_assets,
+            commands::add_asset,
+            commands::delete_asset
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

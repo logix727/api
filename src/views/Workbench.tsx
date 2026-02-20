@@ -1,6 +1,10 @@
 import { Play, Search, ShieldAlert } from "lucide-react";
+import Editor from "@monaco-editor/react";
 
 export default function WorkbenchView() {
+  const mockRequestBody = `{\n  "userId": "12345",\n  "include_private": true\n}`;
+  const mockRawResponse = `HTTP/1.1 200 OK\nContent-Type: application/json\nX-Powered-By: Express\n\n{\n  "status": "success",\n  "data": {\n    "id": 12345,\n    "name": "Jane Doe",\n    "ssn": "000-00-0000",\n    "role": "user"\n  }\n}`;
+
   return (
     <div className="flex-1 flex flex-col h-full bg-background overflow-hidden">
       
@@ -77,8 +81,14 @@ export default function WorkbenchView() {
              ))}
            </div>
 
-           <div className="flex-1 p-4 overflow-auto">
-             <div className="text-sm text-muted-foreground italic">Request Body Editor will go here</div>
+           <div className="flex-1 overflow-hidden">
+             <Editor 
+                height="100%" 
+                defaultLanguage="json" 
+                theme="vs-dark" 
+                value={mockRequestBody}
+                options={{ minimap: { enabled: false }, roundedSelection: true, padding: { top: 16 } }}
+             />
            </div>
         </div>
 
@@ -88,11 +98,25 @@ export default function WorkbenchView() {
              <span className="text-sm font-semibold text-foreground">Security Inspector</span>
           </div>
 
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col min-h-0">
             {/* Top Half: Raw Response */}
-            <div className="flex-1 border-b border-border p-4 relative">
-              <span className="absolute top-2 right-4 text-xs font-mono text-green-500 font-bold bg-green-500/10 px-2 py-1 rounded">200 OK</span>
-              <div className="text-sm text-muted-foreground italic h-full">Monaco Editor for Raw Web Response mapping</div>
+            <div className="flex-1 border-b border-border relative flex flex-col min-h-0 bg-zinc-950">
+              <div className="absolute top-2 right-4 z-10 flex gap-2">
+                 <span className="text-xs font-mono text-green-500 font-bold bg-green-500/10 px-2 py-1 rounded">200 OK</span>
+              </div>
+              <Editor 
+                height="100%" 
+                defaultLanguage="json" 
+                theme="vs-dark" 
+                value={mockRawResponse}
+                options={{ 
+                  minimap: { enabled: false }, 
+                  readOnly: true,
+                  wordWrap: "on",
+                  padding: { top: 40 },
+                  scrollBeyondLastLine: false
+                }}
+              />
             </div>
 
             {/* Bottom Half: Intelligence Findings */}

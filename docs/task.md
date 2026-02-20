@@ -1,0 +1,31 @@
+# API Security Workbench - Planning
+
+- [ ] Define precise detector logic and implementation details in Rust
+  - [ ] BOLA / IDOR Detectors
+  - [ ] Broken Authentication / JWT Detectors
+  - [ ] Property Level / Mass Assignment Detectors
+  - [ ] Sensitive Data Exposure Detectors
+  - [ ] SSRF Detectors
+  - [ ] Security Misconfiguration Detectors
+  - [ ] Schema Drift & Shadow API Detectors
+  - [ ] Advanced: Business Logic & Workflow Abuse
+  - [ ] Advanced: Parameter Pollution & HTTP Desync
+  - [ ] Advanced: Fraud & Account Takeover (Behavioral)
+- [x] Document Rust Trait Architecture for Detectors
+- [ ] Define Findings Data Model and Offsets mapping
+- [x] Plan Application Modules
+  - [x] Workbench & Inspector
+  - [x] Asset Manager
+  - [x] Import Manager
+  - [x] Settings
+- [x] System Architecture & Data Modeling
+  - [x] Define SQLite Schema (Workspaces, Assets, Findings)
+  - [x] Define Tauri IPC & Scanning Concurrency Model
+- [x] Advanced Planning
+  - [x] Define Strict TypeScript/Rust Data Transfer Objects (DTOs)
+  - [x] Plan Self-Protection & Data Encryption (Keys, PII in SQLite)
+  - [x] Plan CI/CD & Desktop Packaging (Windows/macOS/Linux)
+- [ ] Preparation for Development
+  - [ ] Spin up local vulnerable API container (crAPI or VAmPI) for testing
+  - [ ] Scaffold Tauri + React project structure
+  - [ ] Implement foundational SQLite DB layer in Rust

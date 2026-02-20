@@ -1,4 +1,4 @@
-import { Play, Plus, Search } from "lucide-react";
+import { Play, Search, ShieldAlert } from "lucide-react";
 
 export default function WorkbenchView() {
   return (

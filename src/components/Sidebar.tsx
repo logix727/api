@@ -1,4 +1,4 @@
-import { Activity, Database, Settings, ShieldAlert, Cpu } from "lucide-react";
+import { Activity, Database, Settings, ShieldAlert } from "lucide-react";
 
 interface SidebarProps {
   activeView: "workbench" | "assets" | "settings";
